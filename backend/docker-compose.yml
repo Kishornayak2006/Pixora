@@ -1,0 +1,36 @@
+services:
+  api:
+    build: .
+    container_name: pixora_api
+    env_file:
+      - .env.docker
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:16
+    container_name: pixora_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Kishor12345
+      POSTGRES_DB: pixora
+    ports:
+      - "2699:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: pixora_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+
+volumes:
+  postgres_data:

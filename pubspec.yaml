@@ -1,0 +1,20 @@
+name: pixora_workspace
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+workspace:
+  - apps/mobile
+  - apps/dashboard
+  - packages/core
+  - packages/api_client
+  - packages/design_system
+  - packages/shared_models
+  - packages/localization
+
+dev_dependencies:
+  melos: ^8.2.2
+
+melos:
+  useRootAsPackage: false

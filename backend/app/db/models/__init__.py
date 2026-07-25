@@ -1,0 +1,6 @@
+from app.features.auth.models import User
+from app.features.studio.models import Studio
+from app.features.event.models import Event
+from app.features.photo.models import Photo
+from app.features.guest.models import Guest
+from app.db.models.face_embedding import FaceEmbedding

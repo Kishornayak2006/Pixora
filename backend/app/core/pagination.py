@@ -1,0 +1,13 @@
+from pydantic import BaseModel
+
+
+class PaginationMeta(BaseModel):
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+
+class PaginatedResponse(BaseModel):
+    meta: PaginationMeta
+    items: list
