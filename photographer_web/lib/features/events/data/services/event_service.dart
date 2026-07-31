@@ -66,5 +66,20 @@ class EventService {
   Future<void> deleteEvent(int id) async {
     await _dio.delete('/events/$id');
   }
+
+    /// Set cover photo for an event
+  Future<EventModel> setCoverPhoto({
+    required int eventId,
+    required int photoId,
+  }) async {
+    final response = await _dio.patch(
+      '/events/$eventId/cover',
+      data: {
+        "photo_id": photoId,
+      },
+    );
+
+    return EventModel.fromJson(response.data);
+  }
   
 }

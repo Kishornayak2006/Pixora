@@ -55,3 +55,6 @@ class EventResponse(BaseModel):
     gallery_token: str
 
     model_config = ConfigDict(from_attributes=True)
+
+class SetCoverPhotoRequest(BaseModel):
+    photo_id: int

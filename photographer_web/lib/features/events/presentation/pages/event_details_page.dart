@@ -54,19 +54,27 @@ class EventDetailsPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     child: event.coverImage != null &&
                             event.coverImage!.isNotEmpty
-                        ? Image.network(
-                            event.coverImage!,
-                            width: 110,
-                            height: 110,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 110,
-                              height: 110,
-                              color: Colors.white24,
-                              child: const Icon(
-                                Icons.photo_camera_back,
-                                color: Colors.white,
-                                size: 45,
+                        ? GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => Dialog(
+                                  child: InteractiveViewer(
+                                    child: Image.network(
+                                      event.coverImage!,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Image.network(
+                                event.coverImage!,
+                                width: 110,
+                                height: 110,
+                                fit: BoxFit.cover,
                               ),
                             ),
                           )

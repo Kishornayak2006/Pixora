@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-
+from app.features.photo.repository import PhotoRepository
 from app.features.auth.models import User
 from app.features.event.models import Event
 from app.features.event.repository import EventRepository
@@ -15,9 +15,11 @@ class EventService:
         self,
         event_repo: EventRepository,
         studio_repo: StudioRepository,
+        photo_repo: PhotoRepository,
     ):
         self.event_repo = event_repo
         self.studio_repo = studio_repo
+        self.photo_repo = photo_repo
 
     def create(
         self,
@@ -122,3 +124,40 @@ class EventService:
             "progress": round(progress, 2),
             "completed": remaining == 0,
         }
+
+    def set_cover_photo(
+        self,
+        current_user: User,
+        event_id: int,
+        photo_id: int,
+    ):
+        event = self.event_repo.get_by_id(event_id)
+
+        if event is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Event not found.",
+            )
+
+        verify_event_owner(
+            current_user,
+            event,
+        )
+
+        photo = self.photo_repo.get_by_id(photo_id)
+
+        if photo is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Photo not found.",
+            )
+
+        if photo.event_id != event.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Photo does not belong to this event.",
+            )
+
+        event.cover_image = photo.image_url
+
+        return self.event_repo.save(event)

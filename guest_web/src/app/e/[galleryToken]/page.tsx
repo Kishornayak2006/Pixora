@@ -1,9 +1,10 @@
+import Link from "next/link";
+
 interface Props {
   params: Promise<{
     galleryToken: string;
   }>;
 }
-import Link from "next/link";
 
 export default async function EventPage({ params }: Props) {
   const { galleryToken } = await params;
@@ -26,36 +27,153 @@ export default async function EventPage({ params }: Props) {
   const data = await response.json();
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 flex justify-center items-center">
-      <div className="max-w-md w-full bg-zinc-900 rounded-3xl overflow-hidden shadow-xl">
+    <main className="min-h-screen bg-black text-white">
 
-        {data.photos.length > 0 && (
-          <img
+      {/* HERO */}
+      <section className="relative h-[58vh] min-h-[420px] overflow-hidden">
+
+        {data.cover_image ? (
+        <img
+            src={data.cover_image}
+            alt={data.event_name}
+            className="absolute inset-0 w-full h-full object-cover"
+        />
+        ) : data.photos.length > 0 ? (
+        <img
             src={data.photos[0].image_url}
             alt={data.event_name}
-            className="w-full h-72 object-cover"
-          />
+            className="absolute inset-0 w-full h-full object-cover"
+        />
+        ) : (
+        <div className="absolute inset-0 bg-zinc-900" />
         )}
+        {/* Professional Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
 
-        <div className="p-6">
+        <div className="absolute bottom-0 left-0 right-0 p-7">
 
-          <h1 className="text-3xl font-bold">
+          <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-2 text-sm">
+            📸 Powered by <span className="ml-2 font-semibold">Pixora</span>
+          </div>
+
+          <h1 className="mt-5 text-4xl md:text-5xl font-extrabold leading-tight">
             {data.event_name}
           </h1>
 
-          <p className="text-zinc-400 mt-2">
-            {data.photos.length} Photos Available
+          <p className="mt-3 max-w-xl text-zinc-300 text-lg">
+            Find every professional photo you're in using AI face recognition.
           </p>
-
-          <Link href={`/e/${galleryToken}/selfie?eventId=${data.event_id}`}>
-            <button className="mt-8 w-full rounded-xl bg-blue-600 py-4 font-semibold hover:bg-blue-700 transition">
-                Take Live Selfie
-            </button>
-            </Link>
 
         </div>
 
-      </div>
+      </section>
+
+      {/* CONTENT */}
+      <section className="mx-auto max-w-5xl px-6 py-8">
+
+        {/* CTA */}
+        <Link
+          href={`/e/${galleryToken}/selfie?eventId=${data.event_id}`}
+          className="block"
+        >
+          <button className="w-full rounded-2xl bg-blue-600 py-5 text-lg font-semibold transition duration-300 hover:bg-blue-700 hover:shadow-xl active:scale-[0.98]">
+            📸 Find My Photos
+          </button>
+        </Link>
+
+        {/* HOW IT WORKS */}
+        <div className="mt-10 rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
+
+          <h2 className="text-2xl font-bold">
+            Find your photos in seconds
+          </h2>
+
+          <div className="mt-8 grid gap-8 md:grid-cols-3">
+
+            <div>
+              <div className="text-5xl">📱</div>
+              <h3 className="mt-4 text-lg font-semibold">
+                Take a Selfie
+              </h3>
+
+              <p className="mt-2 text-zinc-400">
+                Capture a live selfie securely from your device.
+              </p>
+            </div>
+
+            <div>
+              <div className="text-5xl">🤖</div>
+              <h3 className="mt-4 text-lg font-semibold">
+                AI Search
+              </h3>
+
+              <p className="mt-2 text-zinc-400">
+                Pixora AI instantly searches thousands of event photos.
+              </p>
+            </div>
+
+            <div>
+              <div className="text-5xl">⬇️</div>
+              <h3 className="mt-4 text-lg font-semibold">
+                Download
+              </h3>
+
+              <p className="mt-2 text-zinc-400">
+                View and download your professional photos instantly.
+              </p>
+            </div>
+
+          </div>
+
+          <p className="mt-8 text-center text-sm text-zinc-500">
+            🔒 Your selfie is only used to find your photos and is never shared.
+          </p>
+
+        </div>
+
+        {/* STATS */}
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+
+            <p className="text-3xl font-bold">
+              {data.photos.length}
+            </p>
+
+            <p className="mt-2 text-zinc-400">
+              Professional Photos
+            </p>
+
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+
+            <p className="text-3xl font-bold">
+              AI
+            </p>
+
+            <p className="mt-2 text-zinc-400">
+              Face Recognition
+            </p>
+
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+
+            <p className="text-3xl font-bold">
+              100%
+            </p>
+
+            <p className="mt-2 text-zinc-400">
+              Private Search
+            </p>
+
+          </div>
+
+        </div>
+
+      </section>
+
     </main>
   );
 }

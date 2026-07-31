@@ -1,5 +1,9 @@
 from fastapi import APIRouter, Depends, status
-
+from app.features.event.schemas import (
+    EventCreate,
+    EventResponse,
+    SetCoverPhotoRequest,
+)   
 from app.features.auth.dependencies import get_current_user
 from app.features.auth.models import User
 from app.features.event.dependencies import get_event_service
@@ -74,3 +78,19 @@ def get_progress(
     service: EventService = Depends(get_event_service),
 ):
     return service.get_progress(event_id)
+
+@router.patch(
+    "/{event_id}/cover",
+    response_model=EventResponse,
+)
+def set_cover_photo(
+    event_id: int,
+    body: SetCoverPhotoRequest,
+    current_user: User = Depends(get_current_user),
+    service: EventService = Depends(get_event_service),
+):
+    return service.set_cover_photo(
+        current_user=current_user,
+        event_id=event_id,
+        photo_id=body.photo_id,
+    )

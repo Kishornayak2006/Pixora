@@ -4,15 +4,17 @@ import '../../data/models/photo_model.dart';
 import '../../data/services/gallery_service.dart';
 import '../../../photos/presentation/pages/upload_photos_page.dart';
 
+// Step 2: Import EventService
+import '../../../events/data/services/event_service.dart';
+
 class GalleryPage extends StatefulWidget {
-  final dynamic event; // Supports passing either EventModel or int ID
+  final dynamic event;
 
   const GalleryPage({
     super.key,
     required this.event,
   });
 
-  /// Helper getter to resolve ID whether integer or model instance was passed
   int get eventId {
     if (event is int) return event as int;
     return event.id;
@@ -25,6 +27,10 @@ class GalleryPage extends StatefulWidget {
 class _GalleryPageState extends State<GalleryPage> {
   final GalleryService _galleryService = GalleryService();
 
+  // Step 2: Instantiate EventService and declare _coverImage
+  final EventService _eventService = EventService();
+  String? _coverImage;
+
   late Future<List<PhotoModel>> _photosFuture;
   String _sort = "desc";
   String _search = "";
@@ -36,6 +42,15 @@ class _GalleryPageState extends State<GalleryPage> {
   void initState() {
     super.initState();
     _loadPhotos();
+
+    // Step 3: Initialize current cover photo safely
+    if (widget.event is! int) {
+      try {
+        _coverImage = widget.event.coverImage;
+      } catch (_) {
+        _coverImage = null;
+      }
+    }
   }
 
   void _loadPhotos() {
@@ -47,26 +62,48 @@ class _GalleryPageState extends State<GalleryPage> {
     });
   }
 
+  // Step 4: Add _setCover method
+  Future<void> _setCover(PhotoModel photo) async {
+    try {
+      await _eventService.setCoverPhoto(
+        eventId: widget.eventId,
+        photoId: photo.id,
+      );
+
+      setState(() {
+        _coverImage = photo.imageUrl;
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Cover photo updated"),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
   Future<void> _deletePhoto(PhotoModel photo) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text("Delete Photo"),
-          content: const Text(
-            "This action cannot be undone.",
-          ),
+          content: const Text("This action cannot be undone."),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
+              onPressed: () => Navigator.pop(context, false),
               child: const Text("Cancel"),
             ),
             FilledButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
+              onPressed: () => Navigator.pop(context, true),
               child: const Text("Delete"),
             ),
           ],
@@ -82,19 +119,14 @@ class _GalleryPageState extends State<GalleryPage> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Photo deleted successfully"),
-        ),
+        const SnackBar(content: Text("Photo deleted successfully")),
       );
 
       _loadPhotos();
     } catch (e) {
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
+        SnackBar(content: Text(e.toString())),
       );
     }
   }
@@ -104,25 +136,22 @@ class _GalleryPageState extends State<GalleryPage> {
     Color color;
     String text;
 
-    switch (status) {
+    switch (status.toUpperCase()) {
       case "COMPLETED":
         icon = Icons.check_circle;
         color = const Color(0xff10B981);
         text = "Completed";
         break;
-
       case "PROCESSING":
         icon = Icons.hourglass_top;
         color = const Color(0xffF59E0B);
         text = "Processing";
         break;
-
       case "FAILED":
         icon = Icons.error;
         color = const Color(0xffEF4444);
         text = "Failed";
         break;
-
       default:
         icon = Icons.schedule;
         color = const Color(0xff64748B);
@@ -130,23 +159,16 @@ class _GalleryPageState extends State<GalleryPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 4,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 12,
-            color: color,
-          ),
+          Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
           Text(
             text,
@@ -164,7 +186,6 @@ class _GalleryPageState extends State<GalleryPage> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-
     final crossAxisCount = width > 1600
         ? 6
         : width > 1300
@@ -190,9 +211,7 @@ class _GalleryPageState extends State<GalleryPage> {
         future: _photosFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
@@ -234,6 +253,7 @@ class _GalleryPageState extends State<GalleryPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header Bar
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -300,9 +320,7 @@ class _GalleryPageState extends State<GalleryPage> {
                             icon: const Icon(Icons.sort, color: Color(0xff64748B)),
                             tooltip: "Sort Photos",
                             onSelected: (value) {
-                              setState(() {
-                                _sort = value;
-                              });
+                              setState(() => _sort = value);
                               _loadPhotos();
                             },
                             itemBuilder: (_) => const [
@@ -324,6 +342,7 @@ class _GalleryPageState extends State<GalleryPage> {
 
                 const SizedBox(height: 24),
 
+                // Stats Section
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final cardWidth = constraints.maxWidth > 800
@@ -369,6 +388,7 @@ class _GalleryPageState extends State<GalleryPage> {
 
                 const SizedBox(height: 24),
 
+                // Filters & Search
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -379,11 +399,7 @@ class _GalleryPageState extends State<GalleryPage> {
                   child: Column(
                     children: [
                       TextField(
-                        onChanged: (value) {
-                          setState(() {
-                            _search = value;
-                          });
-                        },
+                        onChanged: (value) => setState(() => _search = value),
                         decoration: InputDecoration(
                           hintText: "Search by filename...",
                           prefixIcon: const Icon(Icons.search, size: 20),
@@ -401,41 +417,11 @@ class _GalleryPageState extends State<GalleryPage> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            _FilterChip(
-                              label: "All",
-                              value: "ALL",
-                              selectedGroupValue: _selectedStatusFilter,
-                              onSelected: (val) =>
-                                  setState(() => _selectedStatusFilter = val),
-                            ),
-                            _FilterChip(
-                              label: "Completed",
-                              value: "COMPLETED",
-                              selectedGroupValue: _selectedStatusFilter,
-                              onSelected: (val) =>
-                                  setState(() => _selectedStatusFilter = val),
-                            ),
-                            _FilterChip(
-                              label: "Processing",
-                              value: "PROCESSING",
-                              selectedGroupValue: _selectedStatusFilter,
-                              onSelected: (val) =>
-                                  setState(() => _selectedStatusFilter = val),
-                            ),
-                            _FilterChip(
-                              label: "Failed",
-                              value: "FAILED",
-                              selectedGroupValue: _selectedStatusFilter,
-                              onSelected: (val) =>
-                                  setState(() => _selectedStatusFilter = val),
-                            ),
-                            _FilterChip(
-                              label: "Pending",
-                              value: "PENDING",
-                              selectedGroupValue: _selectedStatusFilter,
-                              onSelected: (val) =>
-                                  setState(() => _selectedStatusFilter = val),
-                            ),
+                            _buildFilterChip("All", "ALL"),
+                            _buildFilterChip("Completed", "COMPLETED"),
+                            _buildFilterChip("Processing", "PROCESSING"),
+                            _buildFilterChip("Failed", "FAILED"),
+                            _buildFilterChip("Pending", "PENDING"),
                           ],
                         ),
                       ),
@@ -445,70 +431,9 @@ class _GalleryPageState extends State<GalleryPage> {
 
                 const SizedBox(height: 24),
 
+                // Grid View
                 if (filteredPhotos.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 60),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xffE2E8F0)),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: const BoxDecoration(
-                            color: Color(0xffF1F5F9),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.collections,
-                            size: 48,
-                            color: Color(0xff94A3B8),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          "No Photos Found",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xff0F172A),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          "Upload your first photos to begin AI face indexing.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xff64748B),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xff6C3EF4),
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => UploadPhotosPage(
-                                  event: widget.event,
-                                ),
-                              ),
-                            ).then((_) => _loadPhotos());
-                          },
-                          icon: const Icon(Icons.upload, size: 18),
-                          label: const Text("Upload Photos"),
-                        ),
-                      ],
-                    ),
-                  )
+                  _buildEmptyState()
                 else
                   GridView.builder(
                     shrinkWrap: true,
@@ -517,7 +442,7 @@ class _GalleryPageState extends State<GalleryPage> {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
-                      childAspectRatio: 0.82,
+                      childAspectRatio: 0.58, // Adjusted ratio to fit cover button
                     ),
                     itemCount: filteredPhotos.length,
                     itemBuilder: (context, index) {
@@ -537,9 +462,7 @@ class _GalleryPageState extends State<GalleryPage> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(
-                                    alpha: isHovered ? 0.08 : 0.03,
-                                  ),
+                                  color: Colors.black.withOpacity(isHovered ? 0.08 : 0.03),
                                   blurRadius: isHovered ? 12 : 6,
                                   offset: const Offset(0, 4),
                                 ),
@@ -552,14 +475,13 @@ class _GalleryPageState extends State<GalleryPage> {
                                 Expanded(
                                   child: Stack(
                                     children: [
+                                      // Image
                                       InkWell(
                                         onTap: () {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
-                                              builder: (_) => FullScreenPhotoPage(
-                                                photo: photo,
-                                              ),
+                                              builder: (_) => FullScreenPhotoPage(photo: photo),
                                             ),
                                           );
                                         },
@@ -572,17 +494,14 @@ class _GalleryPageState extends State<GalleryPage> {
                                             fit: BoxFit.cover,
                                             width: double.infinity,
                                             height: double.infinity,
-                                            errorBuilder: (_, _, _) {
-                                              return const Center(
-                                                child: Icon(
-                                                  Icons.broken_image,
-                                                  color: Colors.grey,
-                                                ),
-                                              );
-                                            },
+                                            errorBuilder: (_, __, ___) => const Center(
+                                              child: Icon(Icons.broken_image, color: Colors.grey),
+                                            ),
                                           ),
                                         ),
                                       ),
+
+                                      // Delete Button
                                       Positioned(
                                         top: 8,
                                         right: 8,
@@ -591,18 +510,52 @@ class _GalleryPageState extends State<GalleryPage> {
                                           backgroundColor: Colors.black54,
                                           child: IconButton(
                                             padding: EdgeInsets.zero,
-                                            icon: const Icon(
-                                              Icons.delete,
-                                              size: 14,
-                                              color: Colors.white,
-                                            ),
+                                            icon: const Icon(Icons.delete, size: 16, color: Colors.white),
                                             onPressed: () => _deletePhoto(photo),
                                           ),
                                         ),
                                       ),
+
+                                      // Step 5: Add the Cover badge inside Stack
+                                      if (_coverImage == photo.imageUrl)
+                                        Positioned(
+                                          top: 8,
+                                          left: 8,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.amber.shade700,
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 14,
+                                                  color: Colors.white,
+                                                ),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  "Cover",
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
+
+                                // Footer
                                 Padding(
                                   padding: const EdgeInsets.all(12),
                                   child: Column(
@@ -619,14 +572,23 @@ class _GalleryPageState extends State<GalleryPage> {
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          _buildStatusBadge(
-                                            photo.processingStatus,
+                                      _buildStatusBadge(photo.processingStatus),
+
+                                      // Step 6: Add "Set as Cover" Button below status badge
+                                      const SizedBox(height: 10),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: _coverImage == photo.imageUrl
+                                              ? null
+                                              : () => _setCover(photo),
+                                          icon: const Icon(Icons.star, size: 18),
+                                          label: Text(
+                                            _coverImage == photo.imageUrl
+                                                ? "Cover Photo"
+                                                : "Set as Cover",
                                           ),
-                                        ],
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -645,41 +607,78 @@ class _GalleryPageState extends State<GalleryPage> {
       ),
     );
   }
-}
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final String selectedGroupValue;
-  final ValueChanged<String> onSelected;
-
-  const _FilterChip({
-    required this.label,
-    required this.value,
-    required this.selectedGroupValue,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isSelected = value == selectedGroupValue;
-
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _selectedStatusFilter == value;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
+      child: FilterChip(
         label: Text(label),
         selected: isSelected,
-        onSelected: (_) => onSelected(value),
-        selectedColor: const Color(0xff6C3EF4),
-        backgroundColor: const Color(0xffF1F5F9),
+        onSelected: (_) => setState(() => _selectedStatusFilter = value),
+        selectedColor: const Color(0xff6C3EF4).withOpacity(0.15),
+        checkmarkColor: const Color(0xff6C3EF4),
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : const Color(0xff64748B),
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          color: isSelected ? const Color(0xff6C3EF4) : const Color(0xff64748B),
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide.none,
-        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xffE2E8F0)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: Color(0xffF1F5F9),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.collections, size: 48, color: Color(0xff94A3B8)),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            "No Photos Found",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xff0F172A),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            "Upload your first photos to begin AI face indexing.",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: Color(0xff64748B)),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xff6C3EF4),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => UploadPhotosPage(event: widget.event),
+                ),
+              ).then((_) => _loadPhotos());
+            },
+            icon: const Icon(Icons.upload, size: 18),
+            label: const Text("Upload Photos"),
+          ),
+        ],
       ),
     );
   }
@@ -715,34 +714,29 @@ class _StatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xff64748B),
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontSize: 13, color: Color(0xff64748B)),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xff0F172A),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xff0F172A),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

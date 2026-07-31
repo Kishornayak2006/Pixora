@@ -29,6 +29,7 @@ def public_gallery(
     return {
         "event_id": event.id,
         "event_name": event.event_name,
+        "cover_image": event.cover_image,
         "photos": [
             {
                 "id": photo.id,
