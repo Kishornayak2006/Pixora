@@ -34,7 +34,7 @@ def public_gallery(
             {
                 "id": photo.id,
                 "file_name": photo.file_name,
-                "image_url": f"{base_url}/{photo.file_path.replace('\\', '/')}",
+                "image_url": photo.image_url,
             }
             for photo in event.photos
         ],

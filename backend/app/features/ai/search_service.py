@@ -61,7 +61,7 @@ class SearchService:
                     "photo_id": photo.id,
                     "similarity": match["score"],
                     "confidence": self.confidence(match["score"]),
-                    "image_url": "/" + photo.file_path.replace("\\", "/"),
+                    "image_url": photo.image_url,
                     "original_name": photo.original_name,
                 }
             )

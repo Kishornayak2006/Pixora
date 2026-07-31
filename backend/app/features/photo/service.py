@@ -8,27 +8,31 @@ from app.core.file_storage import FileStorageService
 from app.core.file_validator import validate_image
 from app.core.hash import generate_sha256
 from app.features.photo.models import Photo
+from io import BytesIO
+from app.services.s3_service import S3Service
 from app.features.photo.repository import PhotoRepository
 from app.tasks.ai_tasks import generate_embedding
 from app.features.photo.enums import ProcessingStatus
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 
 class PhotoService:
     def __init__(self, photo_repo: PhotoRepository):
         self.photo_repo = photo_repo
-        self.storage = FileStorageService()
+        self.storage = FileStorageService()   # Keep for old local photos
+        self.s3 = S3Service()                 # New S3 service
 
     def _prepare_photo(
         self,
         event_id: int,
         file: UploadFile,
-    ) -> tuple[Photo | None, str |None]:
+    ) -> tuple[Photo | None, str | None]:
         validate_image(file)
 
         file_bytes = file.file.read()
 
         file_hash = generate_sha256(file_bytes)
+
         print("File:", file.filename)
         print("Hash:", file_hash)
 
@@ -49,21 +53,36 @@ class PhotoService:
         if duplicate:
             return None, file.filename
 
-        unique_name, file_path = self.storage.save(
-            file,
-            file_bytes,
+        object_key = self.s3.generate_object_key(
+            event_id=event_id,
+            filename=file.filename,
         )
+
+        self.s3.upload_file(
+            file_obj=BytesIO(file_bytes),
+            object_key=object_key,
+            content_type=file.content_type,
+        )
+
+        unique_name = object_key.split("/")[-1]
 
         photo = Photo(
             event_id=event_id,
             original_name=file.filename,
             file_name=unique_name,
-            file_path=file_path,
+
+            # Legacy field (kept temporarily for compatibility)
+            file_path="",
+
+            # New S3 storage key
+            storage_key=object_key,
+
             mime_type=file.content_type,
             file_size=len(file_bytes),
             file_hash=file_hash,
             processing_status=ProcessingStatus.PENDING,
         )
+
         return photo, None
 
     def upload(
@@ -224,11 +243,19 @@ class PhotoService:
 
         event = photo.event
 
-        self.storage.delete(photo.file_path)
+        # Delete from S3 if uploaded there
+        if photo.storage_key:
+            self.s3.delete_file(photo.storage_key)
+
+        # Delete local file only for legacy photos
+        elif photo.file_path:
+            self.storage.delete(photo.file_path)
 
         event.total_photos -= 1
 
         self.photo_repo.delete(photo)
+
+        self.photo_repo.db.commit()
 
         return {
             "message": "Photo deleted successfully."
@@ -249,6 +276,16 @@ class PhotoService:
                 "Photo not found."
             )
 
+        # S3 photo
+        if photo.storage_key:
+            url = self.s3.generate_presigned_url(photo.storage_key)
+
+            return RedirectResponse(
+                url=url,
+                status_code=307,
+            )
+
+        # Legacy local photo
         return FileResponse(
             path=photo.file_path,
             media_type=photo.mime_type,

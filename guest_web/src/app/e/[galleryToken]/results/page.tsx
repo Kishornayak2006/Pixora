@@ -19,6 +19,9 @@ export default function ResultsPage() {
     if (storedMatches) {
       try {
         setMatches(JSON.parse(storedMatches));
+        const parsed = JSON.parse(storedMatches);
+        console.log(parsed);
+        setMatches(parsed);
       } catch (error) {
         console.error("Failed to parse stored matches:", error);
       }
@@ -62,7 +65,7 @@ export default function ResultsPage() {
   };
 
   const downloadPhoto = async (photo: PhotoMatch) => {
-    const imageUrl = `http://127.0.0.1:8000${photo.image_url}`;
+    const imageUrl = photo.image_url;
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -118,7 +121,7 @@ export default function ResultsPage() {
             >
               {/* Photo */}
               <img
-                src={`http://127.0.0.1:8000${photo.image_url}`}
+                src={photo.image_url}
                 alt="Matched Photo"
                 className="w-full h-72 object-cover cursor-pointer transition-transform duration-500 group-hover:scale-110"
                 onClick={() => setSelectedIndex(index)}
@@ -179,7 +182,7 @@ export default function ResultsPage() {
           {/* Main Image Container */}
           <div className="max-w-6xl w-full px-4 md:px-10 flex flex-col items-center">
             <img
-              src={`http://127.0.0.1:8000${matches[selectedIndex].image_url}`}
+              src={matches[selectedIndex].image_url}
               alt="Full Preview"
               className="max-h-[75vh] w-auto max-w-full object-contain rounded-2xl shadow-2xl"
             />

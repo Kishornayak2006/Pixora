@@ -1,9 +1,11 @@
 from datetime import UTC, datetime
-from app.features.photo.enums import ProcessingStatus
+
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.db.base import Base
 
+from app.db.base import Base
+from app.core.config import settings
+from app.features.photo.enums import ProcessingStatus
 
 
 class Photo(Base):
@@ -31,9 +33,16 @@ class Photo(Base):
         unique=True,
     )
 
+    # Legacy local storage path
     file_path: Mapped[str] = mapped_column(
         String(500),
         nullable=False,
+    )
+
+    # AWS S3 object key
+    storage_key: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
     )
 
     mime_type: Mapped[str] = mapped_column(
@@ -79,6 +88,20 @@ class Photo(Base):
 
     @property
     def image_url(self) -> str:
-        return f"http://127.0.0.1:8000/uploads/photos/{self.file_name}"
+        """
+        Returns either:
+        - A temporary presigned S3 URL
+        - Legacy local URL
+        """
 
-            
+        if self.storage_key:
+            from app.services.s3_service import S3Service
+
+            return S3Service().generate_presigned_url(
+                self.storage_key,
+            )
+
+        return (
+            f"http://127.0.0.1:8000/uploads/photos/"
+            f"{self.file_name}"
+        )
