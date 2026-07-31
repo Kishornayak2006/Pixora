@@ -9,7 +9,6 @@ from app.features.guest.router import router as guest_router
 from app.features.gallery.router import router as gallery_router
 from app.features.ai.router import router as ai_router
 from fastapi.staticfiles import StaticFiles
-from app.features.guest_gallery.router import router as guest_gallery_router
 from app.core.error_handlers import register_exception_handlers
 from app.core.logging_middleware import LoggingMiddleware
 from app.core.rate_limiter import limiter
@@ -66,7 +65,6 @@ app.include_router(guest_router)
 app.include_router(gallery_router)
 app.include_router(ai_router)
 
-app.include_router(guest_gallery_router)
 
 
 

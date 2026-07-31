@@ -27,6 +27,7 @@ def public_gallery(
     base_url = str(request.base_url).rstrip("/")
 
     return {
+        "event_id": event.id,
         "event_name": event.event_name,
         "photos": [
             {
